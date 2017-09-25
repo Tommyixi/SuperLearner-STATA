@@ -9,15 +9,14 @@ S457426, Boston College Department of Economics.
 */
 
 
-
 capture program drop cross_validate
 program define cross_validate, rclass
 
-syntax model [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [mae] [r2] * 
+syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [mae] [r2] * 
 
 	* Initalize temporary variables.
 
-	tempname u e A results group yhat
+	tempname u e A results group yhat average_error 
 	marksample touse
 	
 	* Options and syntax checks.
@@ -34,7 +33,7 @@ syntax model [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] 
 	
 	*number of folds cannot be 0 or 1
 	if "`k'" <= "1" {
-		di in red "Number of folds must cannot be less than 2"
+		di in red "Number of folds cannot be less than 2"
 		exit 198
 		}
 		
@@ -98,18 +97,19 @@ syntax model [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] 
 	
 	* Fit models and calculate errors.
 	
-	* Loop through each of the folds.
+	* Loop through each of the folds help generate average
+	local average_error_sum = 0
 	forvalues i=1/`k' {
 		
 		* declare the dependent variable and make prediction
 		* note, we exclude the current group and use the rest of the sample. 
-		`qui' `model' `weight' if `group' != `i' & `touse'  , `options'
+		`qui' `anything' `weight' if `group' != `i' & `touse'  , `options'
 		local depvar = e(depvar)
 		
-		*capture estimates and store them in stub1 name.
+		*capture estimates and store them in stubi name.
 		cap estimates store `stub'`i'
 			
-		*make a prediction on the set not tested.	
+		*make a prediction on the set not tested (we should have a column of yats).	
 		qui predict `yhat' if `group' == `i' `eif' `ein'
 		
 		* Generate error term- MAE = Mean Absolute Error instead of RMSE
@@ -122,7 +122,7 @@ syntax model [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] 
 			else if "`r2'" == "r2" {
 				local label  "Pseudo-R2"
 				}
-		* Generate the RMSE
+		* Generate the RMSE (default)
 			else {
 				qui gen `e' = (`yhat'-`depvar')*(`yhat'-`depvar') if `group' == `i' `eif' `ein'
 				local result "sqrt"
@@ -142,16 +142,28 @@ syntax model [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] 
 				qui corr `yhat' `depvar'
 				mat `results'[`i',1]  = r(rho)*r(rho)
 				}
+				
+					
+			local average_error_sum = `average_error_sum' + `result'(`mean')		
 		
 			drop `yhat'
 			cap drop `e'
 
 		}
+		
+	local average_error = `average_error_sum' / `k'
+		
+* Return matrix of results. NOTE: This was edited. I'm surpressing the return
+* output so that ONLY the average cross validated risk estimate can be 
+* returned.
 	
-* Return results.
+	*mat colnames `results' = "`label'"
+	*matlist `results'
+	*return matrix `stub'   = `results'
 	
-	mat colnames `results' = "`label'"
-	matlist `results'
-	return matrix `stub'   = `results'
+	*Note, all I'm returning is the average MSE. That's all we care about.
+	return scalar average_mse = `average_error'
 	
 end
+
+cross_validate regress price mpg

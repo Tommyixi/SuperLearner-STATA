@@ -37,7 +37,7 @@ program define discrete_sl, rclass
 		library = various models for prediction
 		discrete_sl mpg length,  v(10) family("gaussian") library("regress glm mixed")
 	*/
-	syntax varlist(min=2) , [if] [in] v(integer) family(string) library(string)
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
 	
 	*Step 1: Split dataset into specified number of folds
 		* 1 less fold for validation, rest are training.
