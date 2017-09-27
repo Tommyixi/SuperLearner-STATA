@@ -35,22 +35,28 @@ program define discrete_sl, rclass
 		v = the number folds
 		family = either gaussian or binomial
 		library = various models for prediction
-		discrete_sl mpg length,  v(10) family("gaussian") library("regress glm mixed")
+		discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed")
 	*/
 	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
 	
 	*Step 1: Split dataset into specified number of folds
-		* 1 less fold for validation, rest are training.
+		* Note, this is completed with the cross_validated script.
 	
 	* puts our library string in local macros `1', `2', `3', etc...
 	tokenize `library'
 	
-	* loop thru the library and run models
+	* loop thru the library and run cross validation on models
 	local i = 1
 	
 	while "‘‘i’’" != "" {
-		``i'' `varlist'
-		local ++i
+		cross_validate ``i'' `varlist'
+		local i = `i' + 1
+		
+		* This will return the average MSE for each model. Next step,
+		* store these retults in a matrix, and seelect the one with the lowest
+		* mse. That's our discrete SL winner. 
+		display r(average_mse)
+		
 	}	
 	
 end
