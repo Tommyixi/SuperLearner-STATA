@@ -166,4 +166,4 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname
 	
 end
 
-cross_validate regress price mpg
+* eample code: cross_validate regress price mpg

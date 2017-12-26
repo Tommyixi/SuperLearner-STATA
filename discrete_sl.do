@@ -44,19 +44,32 @@ program define discrete_sl, rclass
 	
 	* puts our library string in local macros `1', `2', `3', etc...
 	tokenize `library'
+
 	
 	* loop thru the library and run cross validation on models
 	local i = 1
+	local lowmse = .
+	local model = ""
 	
-	while "‘‘i’’" != "" {
-		cross_validate ``i'' `varlist'
-		local i = `i' + 1
+	display "********Calculating the average risk using  k = `k' fold cross validation********"
+	while "`1'" != "" {
+		cross_validate ``i'' `varlist', k(10)
+		
 		
 		* This will return the average MSE for each model. Next step,
-		* store these retults in a matrix, and seelect the one with the lowest
+		* select the one with the lowest
 		* mse. That's our discrete SL winner. 
-		display r(average_mse)
-		
-	}	
-	
+		display "``i'' : "  r(average_mse)
+		if r(average_mse) < `lowmse' {
+			local lowmse = r(average_mse)
+			local model = "``i''"
+		}
+		macro shift
+	}
+	display "********Displaying smallest MSE********"
+	display "`model' : `lowmse' " 
 end
+
+
+*Small example using regression, glm, and mixed models
+discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm")
