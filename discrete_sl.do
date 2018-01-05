@@ -14,6 +14,14 @@
 		7. If users want to declare their own learner they should use a global variable prefaced with custom_
 			Note, this will require the user to actually specify the model they want to use. 
 			ex: global custom_a = "regress mpg weight"
+		
+		
+		****next steps
+		8. Actually return the model fit. 
+		9. Create a separate file that creates the convex combination of weights. 
+		10. Allow for more customizability (try and add more options).
+		11. Plotting and graphing? 
+		12. CV superlearner? 
 
 		For this project, we will start with just assuming a continuous outcome for the target parameter.
 			- With that said, we will assume the L2 loss first.
