@@ -12,7 +12,7 @@ S457426, Boston College Department of Economics.
 capture program drop cross_validate
 program define cross_validate, rclass
 
-syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [mae] [r2] * 
+syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [custom(string)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [mae] [r2] * 
 
 	* Initalize temporary variables.
 
@@ -83,7 +83,7 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname
 	* where sep(#) just separates by number of observations.
 	xtile `group' = `u', n(`k')
 	
-	* creates 10 rows of empty data in one cell
+	* creates k rows of empty data in one cell
 	mat `results' = J(`k',1,.)
 	
 	* for each value specified by the number of folds, create each row that 
@@ -100,6 +100,8 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [EWeight(varname
 	* Loop through each of the folds help generate average
 	local average_error_sum = 0
 	forvalues i=1/`k' {
+		
+		* it's possible for the user to specify a custom method which we need to deal with
 		
 		* declare the dependent variable and make prediction
 		* note, we exclude the current group and use the rest of the sample. 

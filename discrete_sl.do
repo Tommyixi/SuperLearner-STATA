@@ -37,7 +37,7 @@ program define discrete_sl, rclass
 		library = various models for prediction
 		discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed")
 	*/
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) custom(string)
 	
 	*Step 1: Split dataset into specified number of folds
 		* Note, this is completed with the cross_validated script.
@@ -58,7 +58,7 @@ program define discrete_sl, rclass
 		
 		* This will return the average MSE for each model. Next step,
 		* select the one with the lowest
-		* mse. That's our discrete SL winner. 
+		* mse. That's our discrete SL 'winner'. 
 		display "``i'' : "  r(average_mse)
 		if r(average_mse) < `lowmse' {
 			local lowmse = r(average_mse)
@@ -72,4 +72,4 @@ end
 
 
 *Small example using regression, glm, and mixed models
-discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm")
+discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm `a' ")
