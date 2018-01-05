@@ -10,7 +10,10 @@
 		5. Within each validation set, calculate the cross validated risk.
 			a. Take the 
 			a. Average the risk across all simulations for each validation.
-		6. Discrete Super Learner will select the algorithm with the lowest cross validated risk.			
+		6. Discrete Super Learner will select the algorithm with the lowest cross validated risk.
+		7. If users want to declare their own learner they should use a global variable prefaced with custom_
+			Note, this will require the user to actually specify the model they want to use. 
+			ex: global custom_a = "regress mpg weight"
 
 		For this project, we will start with just assuming a continuous outcome for the target parameter.
 			- With that said, we will assume the L2 loss first.
@@ -37,7 +40,7 @@ program define discrete_sl, rclass
 		library = various models for prediction
 		discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed")
 	*/
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) custom(string)
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
 	
 	*Step 1: Split dataset into specified number of folds
 		* Note, this is completed with the cross_validated script.
@@ -53,8 +56,13 @@ program define discrete_sl, rclass
 	
 	display "********Calculating the average risk using  k = `k' fold cross validation********"
 	while "`1'" != "" {
-		cross_validate ``i'' `varlist', k(10)
-		
+		local test_custom = usubstr("``i''",1 ,6)
+		if "`test_custom'" == "custom"{
+			cross_validate ``i'' , k(10)
+		}
+		else{
+			cross_validate ``i'' `varlist', k(10)
+		}
 		
 		* This will return the average MSE for each model. Next step,
 		* select the one with the lowest
@@ -72,4 +80,4 @@ end
 
 
 *Small example using regression, glm, and mixed models
-discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm `a' ")
+discrete_sl mpg length,  k(10) family("gaussian") library(" custom_regress_a regress glm mixed meglm custom_regress_b ")

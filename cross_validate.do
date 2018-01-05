@@ -102,12 +102,16 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [custom(string)]
 	forvalues i=1/`k' {
 		
 		* it's possible for the user to specify a custom method which we need to deal with
-		
-		* declare the dependent variable and make prediction
-		* note, we exclude the current group and use the rest of the sample. 
-		`qui' `anything' `weight' if `group' != `i' & `touse'  , `options'
+		local test_custom = usubstr("`anything'",1 ,6)
+		if "`test_custom'" == "custom"{
+			`qui' $`anything'
+		}
+		else{
+			* declare the dependent variable and make prediction
+			* note, we exclude the current group and use the rest of the sample. 
+			`qui' `anything' `weight' if `group' != `i' & `touse'  , `options'
+		}
 		local depvar = e(depvar)
-		
 		*capture estimates and store them in stubi name.
 		cap estimates store `stub'`i'
 			
