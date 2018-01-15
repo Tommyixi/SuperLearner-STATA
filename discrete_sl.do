@@ -88,4 +88,5 @@ end
 
 
 *Small example using regression, glm, and mixed models
-discrete_sl mpg length,  k(10) family("gaussian") library(" custom_regress_a regress glm mixed meglm custom_regress_b ")
+global custom_a = "regress mpg weight"
+discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm custom_a")

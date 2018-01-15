@@ -93,11 +93,10 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [custom(string)]
 			local rnames "`rnames' "`stub'`i'""
 			}
 	matrix rownames `results' = `rnames'
-
 	
 	* Fit models and calculate errors.
 	
-	* Loop through each of the folds help generate average
+	* Loop through each of the folds to generate average
 	local average_error_sum = 0
 	forvalues i=1/`k' {
 		
@@ -115,8 +114,12 @@ syntax anything [iweight/] [if/] [in], [k(numlist min=1 max=1)] [custom(string)]
 		*capture estimates and store them in stubi name.
 		cap estimates store `stub'`i'
 			
-		*make a prediction on the set not tested (we should have a column of yats).	
+		* Make a prediction on the set not tested (we should have a column of yats).	
 		qui predict `yhat' if `group' == `i' `eif' `ein'
+		
+		* Stack these estimates into a matrix. We want an n X m matrix where n is the number of observations in the dataset and m
+		* represents each learner in the library. From there we can create the weighted combination of weights
+		* using the synth package.
 		
 		* Generate error term- MAE = Mean Absolute Error instead of RMSE
 			if "`mae'" == "mae" {
