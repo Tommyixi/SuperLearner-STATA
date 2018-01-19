@@ -36,57 +36,28 @@ cvControl = list(), innerCvControl = list(), obsWeights = NULL, saveAll = TRUE, 
   call <- match.call()
   N <- dim(X)[1L]                         	
 
+
 */
+clear
 sysuse auto.dta
 
 capture program drop discrete_sl
 program define discrete_sl, rclass
-	/* 	y = y values 
-		x = x values 
-		v = the number folds
-		family = either gaussian or binomial
-		library = various models for prediction
-		discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed")
-	*/
+	
+	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
 	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
 	
-	*Step 1: Split dataset into specified number of folds
-		* Note, this is completed with the cross_validated script.
+	* Options and syntax checks. (to do)
 	
-	* puts our library string in local macros `1', `2', `3', etc...
-	tokenize `library'
+	display "********Calculating the average risk using  k = `k' fold cross validation with the mean absolute error evaulation********"
 
-	
-	* loop thru the library and run cross validation on models
-	local i = 1
-	local lowmse = .
-	local model = ""
-	
-	display "********Calculating the average risk using  k = `k' fold cross validation********"
-	while "`1'" != "" {
-		local test_custom = usubstr("``i''",1 ,6)
-		if "`test_custom'" == "custom"{
-			cross_validate ``i'' , k(10)
-		}
-		else{
-			cross_validate ``i'' `varlist', k(10)
-		}
-		
-		* This will return the average MSE for each model. Next step,
-		* select the one with the lowest
-		* mse. That's our discrete SL 'winner'. 
-		display "``i'' : "  r(average_mse)
-		if r(average_mse) < `lowmse' {
-			local lowmse = r(average_mse)
-			local model = "``i''"
-		}
-		macro shift
-	}
-	display "********Displaying smallest MSE********"
-	display "`model' : `lowmse' " 
+	cross_validate `library', vars(`varlist') k(`k')
+
 end
 
 
 *Small example using regression, glm, and mixed models
-global custom_a = "regress mpg weight"
-discrete_sl mpg length,  k(10) family("gaussian") library("regress glm mixed meglm custom_a")
+global custom_a = "regress mpg weight trunk price"
+global custom_b = "regress mpg weight trunk headroom price length"  
+global custom_c = "regress mpg length price weight"  
+discrete_sl mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a")
