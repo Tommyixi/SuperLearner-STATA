@@ -195,7 +195,9 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 		display "********Discrete Super Learner Results********"
 		display "`model' : `lowmse' " 
 		
-
+		* At this point we should take the estimates generated and optimize the weights for the actual SL
+	
+	
 			
 		
 * Return matrix of results. NOTE: This was edited. I'm surpressing the return

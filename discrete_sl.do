@@ -45,6 +45,7 @@ capture program drop discrete_sl
 program define discrete_sl, rclass
 	
 	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
+	* The superlearner method should be a central control flow, delegating responsibilities 
 	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
 	
 	* Options and syntax checks. (to do)
@@ -52,11 +53,22 @@ program define discrete_sl, rclass
 	display "********Calculating the average risk using  k = `k' fold cross validation with the mean absolute error evaulation********"
 
 	cross_validate `library', vars(`varlist') k(`k')
+	
+	* Ideally here we should now have the discrete Superlearner selection (can we display that here?)
+	
+	/* 
+		Next, we'd like to move the control flow of calling the optimize method here.
+		The idea here is that the library name (regress, custom_a, etc...) also stores the predictions in the dataset.
+		We should be able to use these names to optimize the weights.
+	*/
+	
+	*optimize_weights `library'
 
 end
 
 
 *Small example using regression, glm, and mixed models
+cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk headroom price length"  
 global custom_c = "regress mpg length price weight"  
