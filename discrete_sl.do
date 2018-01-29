@@ -72,4 +72,5 @@ cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk headroom price length"  
 global custom_c = "regress mpg length price weight"  
-discrete_sl mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a")
+global custom_d = "regress mpg length"
+discrete_sl mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a custom_d")
