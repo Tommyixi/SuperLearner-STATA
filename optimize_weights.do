@@ -140,11 +140,3 @@ local na1 1/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]) + exp(_b[t4:_cons]))
 local na4 exp(_b[t4:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]) + exp(_b[t4:_cons]))
 nlcom (custom_a: `na1') (custom_b: `na2') (custom_c: `na3') (custom_d: `na4')
 
-
-
-
-(a: (1/((1  + exp(_b[t2:_cons]) + exp(_b[t3:_cons]) + exp(_b[t4:_cons])))))(b: (exp(_b[t2
-> :_cons])/((1  + exp(_b[t2:_cons]) + exp(_b[t3:_cons]) + exp(_b[t4:_cons])))))(b: (exp(_
-> b[t3:_cons])/((1  + exp(_b[t2:_cons]) + exp(_b[t3:_cons]) + exp(_b[t4:_cons])))))(b: (e
-> xp(_b[t4:_cons])/((1  + exp(_b[t2:_cons]) + exp(_b[t3:_cons]) + exp(_b[t4:_cons])))))
-
