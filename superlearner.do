@@ -41,8 +41,8 @@ cvControl = list(), innerCvControl = list(), obsWeights = NULL, saveAll = TRUE, 
 clear
 sysuse auto.dta
 
-capture program drop discrete_sl
-program define discrete_sl, rclass
+capture program drop superlearner
+program define superlearner, rclass
 	
 	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
 	* The superlearner method should be a central control flow, delegating responsibilities 
@@ -62,15 +62,17 @@ program define discrete_sl, rclass
 		We should be able to use these names to optimize the weights.
 	*/
 	
-	*optimize_weights `library'
-
+	* need to build in a safeguard that ensures all y variables are the same.
+	local depvar = e(depvar)
+	
+	optimize_weights `depvar', predictors(`library')
 end
 
 
 *Small example using regression, glm, and mixed models
 cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
-global custom_b = "regress mpg weight trunk headroom price length"  
-global custom_c = "regress mpg length price weight"  
-global custom_d = "regress mpg length"
-discrete_sl mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a custom_d")
+global custom_b = "regress mpg weight trunk price weight "  
+global custom_c = "regress mpg weight trunk price weight rep78 "  
+global custom_d = "regress mpg weight"
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a custom_d")

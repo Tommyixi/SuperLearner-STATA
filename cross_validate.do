@@ -115,7 +115,8 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 		forvalues i=1/`k' {
 		
 			
-			* it's possible for the user to specify a custom method which we need to deal with
+			* it's possible for the user to specify a custom method which we need to deal with. 
+			* Note, this has been addressed
 			local test_custom = usubstr("``j''",1 ,6)
 			if "`test_custom'" == "custom"{
 				`qui' $``j'' `weight' if `group' != `i' & `touse'  , `options'

@@ -32,6 +32,7 @@ capture program drop optimize_weights
 program define optimize_weights, rclass
 
 	syntax varlist(max=1), [if] [in] predictors(string)
+
 	
 	local count = wordcount("`predictors'")
 	
@@ -56,6 +57,7 @@ program define optimize_weights, rclass
 			}
 			
 		}
+	
 		
 		* At this point, we should have a denominator that is the same across all equations
 		* Now we can coninue on and build the equations
@@ -72,6 +74,7 @@ program define optimize_weights, rclass
 			}
 			local counter = `counter' + 1			
 		}
+		
 		
 		* The system of equations should be built. Now call the NL command.
 		tokenize `predictors'
@@ -90,42 +93,45 @@ program define optimize_weights, rclass
 			local counter = `counter' + 1					
 		}
 		local exp = "`exp' + {a`counter'}"
+	
 		
-		display "performing convex optimization"
-		qui nl (`exp'), delta(1e-7) nolog
+		display "********Performing Convex Optimization********"
+		qui nl (`exp'), nolog
 		
 		*We can now build the code required to actually get the weights from the optimization
-		display "Calculating the weights for each algorith"
-		nlcom `exp2', post
+		display "Calculating the weights for each algorithm"
+		qui nlcom `exp2', post
 		
 		*Next, return the coefficients and pass them back to the SL function.
-		return list
+		*return list
 		matrix list r(b)
 		
 		
 	}
 end
 
+
+/* Example using three equations
 gen mpgmean = r(mean)
 
 local ma3 (exp({t3})/(1+exp({t2})+exp({t3})))
 local ma2 (exp({t2})/(1+exp({t2})+exp({t3})))
 local ma1 (1/(1+exp({t2})+exp({t3})))
-nl (mpg = `ma1'*custom_a + `ma2'*custom_b + `ma3'*mpgmean + {a4}), delta(1e-7) nolog
+nl (mpg = `ma1'*custom_a + `ma2'*custom_b + `ma3'*custom_c + {a4}), delta(1e-7) nolog
 
 
 local na2 exp(_b[t2:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
 local na3 exp(_b[t3:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
 local na1 1/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
-nlcom (custom_a: `na1') (custom_b: `na2') (average: `na3')
-
+nlcom (custom_a: `na1') (custom_b: `na2') (custom_c: `na3')
+*/
 
 
 
 
 /*
 Here's an example using four equations
-*/
+
 
 local ma2 (exp({t2})/(1+exp({t2})+exp({t3}) + exp({t4})))
 local ma3 (exp({t3})/(1+exp({t2})+exp({t3}) + exp({t4})))
@@ -140,3 +146,4 @@ local na1 1/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]) + exp(_b[t4:_cons]))
 local na4 exp(_b[t4:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]) + exp(_b[t4:_cons]))
 nlcom (custom_a: `na1') (custom_b: `na2') (custom_c: `na3') (custom_d: `na4')
 
+*/
