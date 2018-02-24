@@ -31,7 +31,7 @@ Of course, we then then use the NLCOM (non linear combination of estimators) com
 capture program drop optimize_weights
 program define optimize_weights, rclass
 
-	syntax varlist(max=1), [if] [in] predictors(string)
+	syntax varlist(max=1), [if] [in] predictors(string) indvars(string) [originaldataset(string)][predname(string)] [estimatesname(string)] [newdata(string)] [libraryglobals(string)]
 
 	
 	local count = wordcount("`predictors'")
@@ -119,12 +119,80 @@ program define optimize_weights, rclass
 		
 		display "********Predictions Generated********"
 		
-		* Here, we save the estimates. If they want to make out of sample predictions, they have to load the new 
-		* dataset, run each algorithm of their library, generate a prediction for each algorithm, 
-		* then, we can load the estimates, and predict...
-		estimates save filename
+		* Save the estimated model so we can reuse if need be for out of sample predictions
 		
-		estimates use filename 
+		estimates save "`estimatesname'", replace
+		
+		display "********Estimation Saved********"
+		
+		* We have to save the dataset with the predictions
+		local predfile = "`predname'" + ".dta"
+		save "`predfile'", replace
+		
+		
+		* If the user wants to make an out of sample prediction, do the following:
+		if "`newdata'" != "" {
+		
+			* Clear out the original dataset and reload.
+			clear 
+			sysuse `originaldataset'
+			
+		
+			
+			*clear the dataset, run predict on the new dataset, save the new dataset, close it, open the original dataset and repeat.
+			tokenize `predictors'
+			local counter = 1
+			local j = 1
+			
+			
+			* Reload all the associated models, if there are any...
+			if "`libraryglobals'" != "" {
+				do `libraryglobals'
+			}			
+			
+			
+			while "`1'" != "" {
+				* For each model in the library, we have to load the original dataset
+				sysuse `originaldataset'
+				
+				* Run the model (check if it's a custom method)
+				local test_custom = usubstr("``j''",1 ,6)
+				if "`test_custom'" == "custom"{
+					do `libraryglobals'
+					qui $``j'' 
+				}
+				else{
+					qui ``j'' `varlist' `indvars' 
+				}
+				* Save estimates
+				local estimatemodel = "estimates" + "`counter'"
+				estimates save "`estimatemodel'", replace
+				
+				* Clear the dataset, load the original, run prediction, save dataset
+				clear 
+				sysuse `newdata'
+				
+				estimates use `estimatemodel'
+				qui predict ``j''
+				save `newdata', replace
+				
+				local counter = `counter' + 1
+				macro shift
+			}
+			estimates use `estimatesname' 
+			predict superlearner_prediction
+			
+		}
+		
+		
+		* Here, we save the estimates. If they want to make out of sample predictions, they have to:
+		*	1. Run each library on the training dataset and save each estimation to a new name
+		*	2. Open the new dataset. 
+		*	3. Load the first model, run the prediction, load the second model, run prediction.
+		*	4. After all models have predicted, then run superlearner prediction.
+		
+		
+		
 		
 	}
 end

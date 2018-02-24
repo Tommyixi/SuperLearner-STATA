@@ -46,7 +46,7 @@ program define superlearner, eclass
 	
 	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
 	* The superlearner method should be a central control flow, delegating responsibilities 
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string)
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [predname(string)] [estimatesname(string)] [newdata(string)] [libraryglobals(string)]
 	
 	* Options and syntax checks. (to do)
 	
@@ -54,18 +54,11 @@ program define superlearner, eclass
 
 	cross_validate `library', vars(`varlist') k(`k')
 	
-	* Ideally here we should now have the discrete Superlearner selection (can we display that here?)
-	
-	/* 
-		Next, we'd like to move the control flow of calling the optimize method here.
-		The idea here is that the library name (regress, custom_a, etc...) also stores the predictions in the dataset.
-		We should be able to use these names to optimize the weights.
-	*/
-	
 	* need to build in a safeguard that ensures all y variables are the same.
 	local depvar = e(depvar)
+	local indvars = subinstr("`varlist'","`depvar'", "",.)
 	
-	optimize_weights `depvar', predictors(`library')
+	optimize_weights `depvar', predictors(`library') predname(`predname') estimatesname(`estimatesname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
 end
 
 
@@ -74,4 +67,4 @@ cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk"  
 global custom_c = "regress mpg weight length"  
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c")
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") predname("tommy") estimatesname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
