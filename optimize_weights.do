@@ -92,20 +92,39 @@ program define optimize_weights, rclass
 			}
 			local counter = `counter' + 1					
 		}
-		local exp = "`exp' + {a`counter'}"
-	
 		
-		display "********Performing Convex Optimization********"
 		qui nl (`exp'), nolog
 		
 		*We can now build the code required to actually get the weights from the optimization
-		display "Calculating the weights for each algorithm"
-		qui nlcom `exp2', post
+		display "********Calculating the weights for each algorithm********"
+		qui nlcom `exp2' //, post
 		
-		*Next, return the coefficients and pass them back to the SL function.
-		*return list
-		matrix list r(b)
 		
+		*Small loop to round our coefficients
+		mat b = r(b)
+		local colnamesnames : colnames r(b)
+		
+		local cols = colsof(b)
+		matrix C = J(1,`cols',0)
+		forvalues i = 1/`cols' {
+			matrix C[1,`i']= round(b[1,`i'], .000001)
+		}
+		
+		matrix colnames C = `colnamesnames'
+		mat list C
+		
+		display "********Generating Predictions on Current Dataset Stored in y_hat********"
+		
+		qui predict y_hat
+		
+		display "********Predictions Generated********"
+		
+		* Here, we save the estimates. If they want to make out of sample predictions, they have to load the new 
+		* dataset, run each algorithm of their library, generate a prediction for each algorithm, 
+		* then, we can load the estimates, and predict...
+		estimates save filename
+		
+		estimates use filename 
 		
 	}
 end

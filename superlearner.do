@@ -42,7 +42,7 @@ clear
 sysuse auto.dta
 
 capture program drop superlearner
-program define superlearner, rclass
+program define superlearner, eclass
 	
 	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
 	* The superlearner method should be a central control flow, delegating responsibilities 
@@ -50,7 +50,7 @@ program define superlearner, rclass
 	
 	* Options and syntax checks. (to do)
 	
-	display "********Calculating the average risk using  k = `k' fold cross validation with the mean absolute error evaulation********"
+	display "********Calculating the average risk using  k = `k' fold cross validation with the root mean square error evaluation********"
 
 	cross_validate `library', vars(`varlist') k(`k')
 	
@@ -72,7 +72,6 @@ end
 *Small example using regression, glm, and mixed models
 cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
-global custom_b = "regress mpg weight trunk price weight "  
-global custom_c = "regress mpg weight trunk price weight rep78 "  
-global custom_d = "regress mpg weight"
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b regress custom_c custom_a custom_d")
+global custom_b = "regress mpg weight trunk"  
+global custom_c = "regress mpg weight length"  
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c")
