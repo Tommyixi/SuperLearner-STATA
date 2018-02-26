@@ -1,35 +1,4 @@
-/* 	This document is going to serve as the main file for the discrete superlearner algorithm in Stata.
-	General plan for implementing discrete superlearner:
-		1. User inputs: data, models (algorithms)
-		2. Split the dataset into a specified number of folds (k?). Let's say 10 in this example.
-			a. 9 of the folds will be required to train the data, the 10th will be the validation set.
-			b. Each fold is responsible for being BOTH a training and validation set in each iteration.
-		3. Fit each of the specified algorithms on each of the folds.
-			a. If you have 10 folds and three algorithms, you will have thirty models fit.
-		4. Predict whatever value is you're trying to predcit with the fitted models.
-		5. Within each validation set, calculate the cross validated risk.
-			a. Take the 
-			a. Average the risk across all simulations for each validation.
-		6. Discrete Super Learner will select the algorithm with the lowest cross validated risk.
-		7. If users want to declare their own learner they should use a global variable prefaced with custom_
-			Note, this will require the user to actually specify the model they want to use. 
-			ex: global custom_a = "regress mpg weight"
-		
-		
-		****next steps
-		8. Actually return the model fit. 
-		9. Create a separate file that creates the convex combination of weights. 
-		10. Allow for more customizability (try and add more options).
-		11. Plotting and graphing? 
-		12. CV superlearner? 
-
-		For this project, we will start with just assuming a continuous outcome for the target parameter.
-			- With that said, we will assume the L2 loss first.
-
-
-SuperLearner <- function(Y, X, newX = NULL, family = gaussian(), SL.library,
-                         method = 'method.NNLS', id = NULL, verbose = FALSE, control = list(),
-                         cvControl = list(), obsWeights = NULL, env = parent.frame()) {			
+/* 	This document is going to serve as the main file for the discrete superlearner algorithm in Stata.		
 
 CV.SuperLearner <- function(Y, X, V = NULL, family = gaussian(), SL.library, method = 'method.NNLS', id = NULL, verbose = FALSE, control = list(saveFitLibrary = FALSE), 
 cvControl = list(), innerCvControl = list(), obsWeights = NULL, saveAll = TRUE, parallel = "seq", env = parent.frame()) {
@@ -44,21 +13,35 @@ sysuse auto.dta
 capture program drop superlearner
 program define superlearner, eclass
 	
-	* As of now, the actual superlearner call does not do a whole bunch. Eventually we'd like to specify for different families, methods, weights, etc...
-	* The superlearner method should be a central control flow, delegating responsibilities 
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [predname(string)] [estimatesname(string)] [newdata(string)] [libraryglobals(string)]
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
 	
-	* Options and syntax checks. (to do)
+	/*
+		varlist: 			Variables (both Y and X) that are used to fit models.
+		k: 					Number of folds desired for the kfold cross validation
+		family: 			Currently setup to only handle gaussian, eventually binomial.
+		library: 			List of algorithms (both custom and built in) to comprise of the final superlearner algorithm
+		originaldataset: 	The name of the original dataset you are using for the superlearner fit. Training set may be a more apropriate name.
+		superpredname: 		A user supplied name for the dataset containing the superlearner predictions. 
+		superestname: 		A user supplied name for the saving of the estimated model of the superlearner.
+		newdata: 			If the user would like to make predictions on a new dataset (with the same variables) they can supply that here.
+		libraryglobals: 	This parameter would only be used if the user created a custom library for which they wanted to make predictions.
+		loud: 				Should the output be displayed?
+		evalmetric:			How should the cross validation be executed (mae, pseudo rsquared, auc, rmse(default))	
+	*/
 	
-	display "********Calculating the average risk using  k = `k' fold cross validation with the root mean square error evaluation********"
+	* Parameter checks!
+	
+	
+	
+	display "********Calculating the average risk using  k = `k' fold cross validation with `evalmetric' evaluation********"
 
-	cross_validate `library', vars(`varlist') k(`k')
+	cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric')
 	
 	* need to build in a safeguard that ensures all y variables are the same.
 	local depvar = e(depvar)
 	local indvars = subinstr("`varlist'","`depvar'", "",.)
 	
-	optimize_weights `depvar', predictors(`library') predname(`predname') estimatesname(`estimatesname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
+	optimize_weights `depvar', predictors(`library') vars(`varlist') k(`k') evalmetric(`evalmetric') superpredname(`superpredname') superestname(`superestname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
 end
 
 
@@ -66,5 +49,16 @@ end
 cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk"  
-global custom_c = "regress mpg weight length"  
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") predname("tommy") estimatesname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
+global custom_c = "regress mpg weight length" 
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2")
+
+clear
+webuse lbw 
+
+
+global custom_z = "logistic low age lwt smoke ptl ht ui" 
+global custom_x = "logistic low age lwt smoke ptl"
+global custom_w = "probit low age "  
+superlearner low age lwt smoke ptl ht ui, k(10) family("gaussian") library("custom_w custom_z custom_x probit") evalmetric("auc")
+
+

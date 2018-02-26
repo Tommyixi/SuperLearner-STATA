@@ -31,7 +31,12 @@ Of course, we then then use the NLCOM (non linear combination of estimators) com
 capture program drop optimize_weights
 program define optimize_weights, rclass
 
-	syntax varlist(max=1), [if] [in] predictors(string) indvars(string) [originaldataset(string)][predname(string)] [estimatesname(string)] [newdata(string)] [libraryglobals(string)]
+	syntax varlist(max=1), [if] [in] predictors(string) indvars(string) [vars(string)] [k(numlist min=1 max=1)] [evalmetric(string)] [originaldataset(string)][superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud]
+	
+	*by default we don't display each model as it is fit.
+	if "`loud'" == "" {
+		local qui = "qui"
+	}
 
 	
 	local count = wordcount("`predictors'")
@@ -93,11 +98,11 @@ program define optimize_weights, rclass
 			local counter = `counter' + 1					
 		}
 		
-		qui nl (`exp'), nolog
+		`qui' nl (`exp'), nolog
 		
 		*We can now build the code required to actually get the weights from the optimization
 		display "********Calculating the weights for each algorithm********"
-		qui nlcom `exp2' //, post
+		`qui' nlcom `exp2' //, post
 		
 		
 		*Small loop to round our coefficients
@@ -115,19 +120,23 @@ program define optimize_weights, rclass
 		
 		display "********Generating Predictions on Current Dataset Stored in y_hat********"
 		
-		qui predict y_hat
+		`qui' predict y_hat
 		
 		display "********Predictions Generated********"
 		
 		* Save the estimated model so we can reuse if need be for out of sample predictions
 		
-		estimates save "`estimatesname'", replace
+		estimates save "`superestname'", replace
 		
 		display "********Estimation Saved********"
 		
 		* We have to save the dataset with the predictions
-		local predfile = "`predname'" + ".dta"
+		local predfile = "`superpredname'" + ".dta"
 		save "`predfile'", replace
+		
+		* We should run a cross validated superlearner as well. How does our superlearner hold up against the other predictors?
+		display "********Performing Cross Validated SuperLearner********"
+		cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric') superlearner("`superestname'")
 		
 		
 		* If the user wants to make an out of sample prediction, do the following:
@@ -159,10 +168,10 @@ program define optimize_weights, rclass
 				local test_custom = usubstr("``j''",1 ,6)
 				if "`test_custom'" == "custom"{
 					do `libraryglobals'
-					qui $``j'' 
+					`qui' $``j'' 
 				}
 				else{
-					qui ``j'' `varlist' `indvars' 
+					`qui' ``j'' `varlist' `indvars' 
 				}
 				* Save estimates
 				local estimatemodel = "estimates" + "`counter'"
@@ -173,23 +182,16 @@ program define optimize_weights, rclass
 				sysuse `newdata'
 				
 				estimates use `estimatemodel'
-				qui predict ``j''
+				`qui' predict ``j''
 				save `newdata', replace
 				
 				local counter = `counter' + 1
 				macro shift
 			}
-			estimates use `estimatesname' 
+			estimates use `superestname' 
 			predict superlearner_prediction
 			
 		}
-		
-		
-		* Here, we save the estimates. If they want to make out of sample predictions, they have to:
-		*	1. Run each library on the training dataset and save each estimation to a new name
-		*	2. Open the new dataset. 
-		*	3. Load the first model, run the prediction, load the second model, run prediction.
-		*	4. After all models have predicted, then run superlearner prediction.
 		
 		
 		
