@@ -27,11 +27,11 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	* Options and syntax checks.
 	
 	if "`evalmetric'" == "" {
-		local evalmetric = "rmse"
+		local evalmetric = "mse"
 	}
 	
-	if "`evalmetric'" != "mae" & "`evalmetric'" != "r2" & "`evalmetric'" != "rmse" & "`evalmetric'" != "auc" &  "`evalmetric'" != "" {
-		di in red "Evaluation metric must either be mae, r2, auc, or the default, rmse."
+	if "`evalmetric'" != "mae" & "`evalmetric'" != "r2" & "`evalmetric'" != "mse" & "`evalmetric'" != "auc" &  "`evalmetric'" != "" {
+		di in red "Evaluation metric must either be mae, r2, auc, or the default, mse."
 		exit 198
 	}
 
@@ -97,7 +97,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	mat `results' = J(`k',1,.)
 	
 	* for each value specified by the number of folds, create each row that 
-	* reads 'est1, est2, est3' which will be estimating the RMSE.
+	* reads 'est1, est2, est3' which will be estimating the MSE.
 	local rnames
 		forvalues i=1/`k' {
 			local rnames "`rnames' "`stub'`i'""
@@ -148,13 +148,13 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			* represents each learner in the library. From there we can create the weighted combination of weights
 			* using the synth package.
 			
-			* Generate error term- MAE = Mean Absolute Error instead of RMSE
+			* Generate error term- MAE = Mean Absolute Error instead of MSE
 				if "`evalmetric'" == "mae" {
 					qui gen `e' = abs(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
 					local result ""
 					local label  "MAE"
 				}
-			* Pseudo R2 as the square of the correlation coefficient instead of RMSE
+			* Pseudo R2 as the square of the correlation coefficient instead of MSE
 				else if "`evalmetric'" == "r2" {
 					local label  "Pseudo-R2"
 				}
@@ -164,11 +164,10 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 					qui gen `e' = r(area) 
 					local label "AUC"
 				}
-			* Generate the RMSE (default)
+			* Generate the MSE (default)
 				else {
 					qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
-					local result "sqrt"
-					local label  "RMSE"
+					local label  "MSE"
 				}
 			
 			* Tabulate errors
@@ -176,8 +175,8 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				if "`evalmetric'" != "r2" {
 					qui tabstat `e' `eweight' if `group' == `i' `eif' `ein', save
 					mat `A' 			  = r(StatTotal)
-					local mean 		   	  = `A'[1,1]
-					mat `results'[`i',1]  = `result'(`mean')
+					local mean 		   	  = `A'[1,1]					
+					mat `results'[`i',1]  = (`mean')
 					local average_error_sum = `average_error_sum' + `result'(`mean')						
 				}
 				else {
@@ -225,7 +224,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			* We ran each of the models on each training set and got fitted values on the validation set.
 			* (so, each model was trained on each fold and validated on each fold..)
 			* Can we then just take our loss function applied to the whole dataset rather than the loss within each fold?
-			* Note, something is not right with our RMSE calculation..
+			* Note, something is not right with our MSE calculation..
 			
 			
 		}
