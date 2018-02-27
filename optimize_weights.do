@@ -31,11 +31,27 @@ Of course, we then then use the NLCOM (non linear combination of estimators) com
 capture program drop optimize_weights
 program define optimize_weights, rclass
 
-	syntax varlist(max=1), [if] [in] predictors(string) indvars(string) [vars(string)] [k(numlist min=1 max=1)] [evalmetric(string)] [originaldataset(string)][superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud]
+	syntax varlist(max=1), [if] [in] predictors(string) indvars(string) library(string) [vars(string)] [k(numlist min=1 max=1)] [evalmetric(string)] [originaldataset(string)][superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud]
 	
 	*by default we don't display each model as it is fit.
 	if "`loud'" == "" {
 		local qui = "qui"
+	}
+	
+	display "********Generating Predictions on Current Dataset Stored in y_hat********"
+	tokenize `library'
+	local j = 1
+	while "`1'" != "" {
+		local test_custom = usubstr("``j''",1 ,6)
+		if "`test_custom'" == "custom"{
+			`qui' $``j'' `weight', `options'
+			predict ``j''
+		}
+		else{
+			`qui' ``j'' `vars' `weight' , `options'
+			predict ``j''
+		}	
+		macro shift
 	}
 
 	
@@ -100,6 +116,7 @@ program define optimize_weights, rclass
 		
 		`qui' nl (`exp'), nolog
 		
+		
 		*We can now build the code required to actually get the weights from the optimization
 		display "********Calculating the weights for each algorithm********"
 		`qui' nlcom `exp2' //, post
@@ -116,11 +133,15 @@ program define optimize_weights, rclass
 		}
 		
 		matrix colnames C = `colnamesnames'
-		mat list C
-		
-		display "********Generating Predictions on Current Dataset Stored in y_hat********"
+		mat list C		
 		
 		`qui' predict y_hat
+		local j = 1
+		while "`1'" != "" {
+			drop ``j''
+			macro shift
+		}		
+		
 		
 		display "********Predictions Generated********"
 		
@@ -136,7 +157,8 @@ program define optimize_weights, rclass
 		
 		* We should run a cross validated superlearner as well. How does our superlearner hold up against the other predictors?
 		display "********Performing Cross Validated SuperLearner********"
-		cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric') superlearner("`superestname'")
+		* This needs to be worked on...
+		*cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric') superlearner("`superestname'")
 		
 		
 		* If the user wants to make an out of sample prediction, do the following:

@@ -81,6 +81,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	if "`stub'" == "" {
 		local stub = "est"
 	}
+
 		
 * Randomize dataset and initialize results matrix.
 
@@ -133,7 +134,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			else{
 				* declare the dependent variable and make prediction
 				* note, we exclude the current group and use the rest of the sample. 
-				*`qui' `anything' `weight' if `group' != `i' & `touse'  , `options'
 				`qui' ``j'' `vars' `weight' if `group' != `i' & `touse'  , `options'
 			}
 			local depvar = e(depvar)
@@ -166,10 +166,10 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				}
 			* Generate the RMSE (default)
 				else {
-					qui gen `e' = sqrt((``j''_`i'-`depvar')*(``j''_`i'-`depvar')) if `group' == `i' `eif' `ein'
+					qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
 					local result "sqrt"
 					local label  "RMSE"
-					}
+				}
 			
 			* Tabulate errors
 			
@@ -203,13 +203,36 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			
 			* This bit of code stores the predicted values for each of the columns.
 			* We need these estimates for the optimization
-			egen ``j'' = rowtotal(`new_var')
-			drop `new_var'
+			if "`superlearner'" != "" {
+				* Initially I thought I would just be able to calculate the superlearner this way but I need
+				* to actually call the superlearner on EACH fold. It might be better to do this in separate code.
+				egen "``j''" = rowtotal(`new_var')
+				drop `new_var'
+			}
+			else{
+				*egen "``j''_cv" = rowtotal(`new_var')
+				drop `new_var'
+			}
 			macro shift
-						
 		}
-		display "********Discrete Super Learner Results********"
-		display "`model' : `lowmse' " 
+		
+		if "`superlearner'" != "" {
+			* Cast the predictions on the new cross validated predictions...
+			estimates use `superlearner' 
+			predict superlearner_cv_pred
+			* Question for someone out there...
+			* We went ahead and split the data into k folds. 
+			* We ran each of the models on each training set and got fitted values on the validation set.
+			* (so, each model was trained on each fold and validated on each fold..)
+			* Can we then just take our loss function applied to the whole dataset rather than the loss within each fold?
+			* Note, something is not right with our RMSE calculation..
+			
+			
+		}
+		else{
+			display "********Discrete Super Learner Results********"
+			display "`model' : `lowmse' " 		
+		}
 	
 	
 * Return matrix of results. NOTE: This was edited. I'm surpressing the return

@@ -41,7 +41,7 @@ program define superlearner, eclass
 	local depvar = e(depvar)
 	local indvars = subinstr("`varlist'","`depvar'", "",.)
 	
-	optimize_weights `depvar', predictors(`library') vars(`varlist') k(`k') evalmetric(`evalmetric') superpredname(`superpredname') superestname(`superestname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
+	optimize_weights `depvar', predictors(`library') vars(`varlist') library(`library') k(`k') evalmetric(`evalmetric') superpredname(`superpredname') superestname(`superestname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
 end
 
 
@@ -50,7 +50,8 @@ cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk"  
 global custom_c = "regress mpg weight length" 
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2")
+*superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2")
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates")
 
 clear
 webuse lbw 
