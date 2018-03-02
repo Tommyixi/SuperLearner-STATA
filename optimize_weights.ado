@@ -114,10 +114,8 @@ program define optimize_weights, rclass
 			local counter = `counter' + 1					
 		}
 		
-		`qui' nl (`exp'), nolog
+		`qui' nl (`exp'), eps(1e-10) nolog
 		
-		
-		*We can now build the code required to actually get the weights from the optimization
 		display "********Calculating the weights for each algorithm********"
 		`qui' nlcom `exp2' //, post
 		
@@ -158,7 +156,7 @@ program define optimize_weights, rclass
 		* We should run a cross validated superlearner as well. How does our superlearner hold up against the other predictors?
 		display "********Performing Cross Validated SuperLearner********"
 		* This needs to be worked on...
-		*cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric') superlearner("`superestname'")
+		cross_validate `library', vars(`vars') k(`k') evalmetric(`evalmetric') superlearner("`superestname'") depvar(`varlist')
 		
 		
 		* If the user wants to make an out of sample prediction, do the following:

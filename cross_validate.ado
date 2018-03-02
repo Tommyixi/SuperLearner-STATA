@@ -17,7 +17,8 @@ S457426, Boston College Department of Economics.
 capture program drop cross_validate
 program define cross_validate, rclass
 
-syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [custom(string)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [evalmetric(string)] [superlearner(string)] * 
+syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [custom(string)] [EWeight(varname)] [eif(string)] [ein(string)] [stub(string)] [loud] [evalmetric(string)] [superlearner(string)] [depvar(string)] * 
+
 
 	* Initalize temporary variables.
 
@@ -81,7 +82,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	if "`stub'" == "" {
 		local stub = "est"
 	}
-
 		
 * Randomize dataset and initialize results matrix.
 
@@ -101,11 +101,12 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	local rnames
 		forvalues i=1/`k' {
 			local rnames "`rnames' "`stub'`i'""
-			}
+		}
 	matrix rownames `results' = `rnames'
 	
-	* Fit models and calculate errors.
 	
+	
+	* Fit models and calculate errors.
 	* Since the folds are already created, we need to loop through each algorithm within each fold.
 	* Tokenize allows us to break up the input for a loop through. We store each 
 	* model run in the j variable. We then need to keep track of the lowest MSE
@@ -136,6 +137,8 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				* note, we exclude the current group and use the rest of the sample. 
 				`qui' ``j'' `vars' `weight' if `group' != `i' & `touse'  , `options'
 			}
+			
+			
 			local depvar = e(depvar)
 			*capture estimates and store them in stubi name.
 			*cap estimates store `stub'`i'
@@ -143,10 +146,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			* Make a prediction on the set not tested (we should have a column of yats).
 			`qui' predict ``j''_`i' if `group' == `i'
 			local new_var = "`new_var'" + " ``j''_`i'"
-			
-			* Stack these estimates into a matrix. We want an n X m matrix where n is the number of observations in the dataset and m
-			* represents each learner in the library. From there we can create the weighted combination of weights
-			* using the synth package.
+						
 			
 			* Generate error term- MAE = Mean Absolute Error instead of MSE
 				if "`evalmetric'" == "mae" {
@@ -202,36 +202,157 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			
 			* This bit of code stores the predicted values for each of the columns.
 			* We need these estimates for the optimization
-			if "`superlearner'" != "" {
-				* Initially I thought I would just be able to calculate the superlearner this way but I need
-				* to actually call the superlearner on EACH fold. It might be better to do this in separate code.
-				egen "``j''" = rowtotal(`new_var')
-				drop `new_var'
-			}
-			else{
 				*egen "``j''_cv" = rowtotal(`new_var')
+			if "`superlearner'" == "" {
 				drop `new_var'
 			}
 			macro shift
 		}
 		
-		if "`superlearner'" != "" {
-			* Cast the predictions on the new cross validated predictions...
-			estimates use `superlearner' 
-			predict superlearner_cv_pred
-			* Question for someone out there...
-			* We went ahead and split the data into k folds. 
-			* We ran each of the models on each training set and got fitted values on the validation set.
-			* (so, each model was trained on each fold and validated on each fold..)
-			* Can we then just take our loss function applied to the whole dataset rather than the loss within each fold?
-			* Note, something is not right with our MSE calculation..
+			* This is the case where if we have superlearner and we need predictions, well let's make the superlearner in each fold.
+			if "`superlearner'" != "" {
+				* We have predictions run off each model, we should loop through the number of folds
+				* and create predictions based on the data from those folds.
+				
+******************************************************
+			local average_error_sum_sl = 0
+			forvalues i=1/`k' {
+				local count = wordcount("`anything'")		
+				* First we need to build the denominator of our system of equations
+				local counter = 2
+				local loop = "TRUE"
+				local denom = "(1 "
+				local denom2 = "(1 "
+				while "`loop'" == "TRUE"{
+					local denom = "`denom'" + " + exp({t`counter'})"
+					local denom2 = "`denom2'" + " + exp(_b[t`counter':_cons])"
+					local counter = `counter' + 1
+					if `counter' > `count'{
+						local loop = "FALSE"
+						local denom = "`denom'" + ")"
+						local denom2 = "`denom2'" + ")"
+					}
+					
+				}
+				
+				* At this point, we should have a denominator that is the same across all equations
+				* Now we can coninue on and build the equations
+				* First we reset the counter
+				local counter = 1
+				while `counter' <= `count'{
+					if `counter' == 1{
+						local ma`counter' (1/(`denom'))
+						local na`counter' (1/(`denom2'))
+					}
+					else{
+						local ma`counter' (exp({t`counter'})/(`denom'))
+						local na`counter' (exp(_b[t`counter':_cons])/(`denom2'))
+					}
+					local counter = `counter' + 1			
+				}				
+				
+				* The system of equations should be built. Now call the NL command.
+				tokenize `anything'
+				local counter = 1
+				local exp = "`depvar' = "				
+				local exp2 = ""
+				local exp3 = ""
+				while `counter' <= `count'{					
+					if `counter' == 1{
+						local exp = "`exp'" + "`ma`counter''*``counter''_`i' "
+						local exp2 = "`exp2'" + "(``counter'': `na`counter'')"
+						local exp3 = "`exp3'" + " !missing(``counter''_`i') "					
+					}
+					else{
+						local exp = "`exp'" + " + `ma`counter''*``counter''_`i' " 
+						local exp2 = "`exp2'" + "(``counter'': `na`counter'')"
+						local exp3 = "`exp3'" + " & !missing(``counter''_`i') "
+					}
+					local counter = `counter' + 1					
+				}
+				`qui' nl (`exp') if `exp3'  , eps(1e-10) nolog	
+				*We can now build the code required to actually get the weights from the optimization
+				`qui' nlcom `exp2' //, post
+				
+				
+				*Small loop to round our coefficients
+				mat b = r(b)
+				local colnamesnames : colnames r(b)
+				
+				local cols = colsof(b)
+				matrix C = J(1,`cols',0)
+				forvalues c = 1/`cols' {
+					matrix C[1,`c']= round(b[1,`c'], .000001)
+				}
+				
+				matrix colnames C = `colnamesnames'
+				*mat list C		
+				
+				local pred_name = "y_hat_`i'"
+				`qui' predict "`pred_name'"
+				
+				* Now that we have the predictions within each fold, we can now find the evaluation metric for each fold...
+				
+				* Generate error term- MAE = Mean Absolute Error instead of MSE
+				if "`evalmetric'" == "mae" {
+					qui gen `e' = abs(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
+					local result ""
+					local label  "MAE"
+				}
+				* Pseudo R2 as the square of the correlation coefficient instead of MSE
+					else if "`evalmetric'" == "r2" {
+						local label  "Pseudo-R2"
+					}
+				* Should they select the AUC as an evaluation metric
+					else if "`evalmetric'" == "auc" {
+						`qui' lroc if `group' == `i' `eif' `ein', nograph	
+						qui gen `e' = r(area) 
+						local label "AUC"
+					}
+				* Generate the MSE (default)
+					else {
+						qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
+						local label  "MSE"
+					}
+				
+				* Tabulate errors
+				
+					if "`evalmetric'" != "r2" {
+						qui tabstat `e' `eweight' if `group' == `i' `eif' `ein', save
+						mat `A' 			  = r(StatTotal)
+						local mean 		   	  = `A'[1,1]					
+						mat `results'[`i',1]  = (`mean')
+						local average_error_sum_sl = `average_error_sum_sl' + `result'(`mean')						
+					}
+					else {
+						* Generate psuedo r-squared.
+						qui corr ``j''_`i' `depvar'
+						mat `results'[`i',1]  = r(rho)*r(rho)
+						local average_error_sum_sl = `average_error_sum_sl' + (r(rho)*r(rho))
+					}				
+				
+			}
+			local average_error_sl = round(`average_error_sum_sl' / `k', .00001)
 			
 			
-		}
-		else{
+			display "SuperLearner: `average_error_sl'"
+			
+******************************************************;				
+
+
+			}		
+
+		
 			display "********Discrete Super Learner Results********"
-			display "`model' : `lowmse' " 		
-		}
+			if "`superlearner'" != "" {
+				if `average_error_sl' < `lowmse'{
+					display "Superlearner: average_error_sl"
+				}
+				else{
+					display "`model' : `lowmse' " 						
+				}
+			}
+		
 	
 	
 * Return matrix of results. NOTE: This was edited. I'm surpressing the return

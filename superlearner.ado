@@ -13,7 +13,7 @@ sysuse auto.dta
 capture program drop superlearner
 program define superlearner, eclass
 	
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [superlearner(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
 	
 	/*
 		varlist: 			Variables (both Y and X) that are used to fit models.
@@ -50,7 +50,7 @@ cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk"  
 global custom_c = "regress mpg weight length" 
-*superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2")
+superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2") superlearner("yes")
 superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates")
 
 clear
