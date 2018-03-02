@@ -1,19 +1,10 @@
-/* 	This document is going to serve as the main file for the discrete superlearner algorithm in Stata.		
-
-CV.SuperLearner <- function(Y, X, V = NULL, family = gaussian(), SL.library, method = 'method.NNLS', id = NULL, verbose = FALSE, control = list(saveFitLibrary = FALSE), 
-cvControl = list(), innerCvControl = list(), obsWeights = NULL, saveAll = TRUE, parallel = "seq", env = parent.frame()) {
-  call <- match.call()
-  N <- dim(X)[1L]                         	
-
-
-*/
 clear
 sysuse auto.dta
 
 capture program drop superlearner
 program define superlearner, eclass
 	
-	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [superlearner(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
+	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
 	
 	/*
 		varlist: 			Variables (both Y and X) that are used to fit models.
@@ -25,15 +16,16 @@ program define superlearner, eclass
 		superestname: 		A user supplied name for the saving of the estimated model of the superlearner.
 		newdata: 			If the user would like to make predictions on a new dataset (with the same variables) they can supply that here.
 		libraryglobals: 	This parameter would only be used if the user created a custom library for which they wanted to make predictions.
-		loud: 				Should the output be displayed?
-		evalmetric:			How should the cross validation be executed (mae, pseudo rsquared, auc, rmse(default))	
+		loud: 				Should the output from each command be displayed?
+		evalmetric:			How should the cross validation be executed (mae, pseudo rsquared, auc, rmse(default))
+		indvars: 			Independent variables required for weight optimization 
+		newdata:			The name of the new dataset you would like to make predictions on (used for OOS prediction)
+		libraryglobals:		The name of the file containing the custom global macros for prediction (used for OOS prediction)
+		originaldataset:	The name of the original dataset (used for OOS prediction)
 	*/
 	
 	* Parameter checks!
-	
-	
-	
-	display "********Calculating the average risk using  k = `k' fold cross validation with `evalmetric' evaluation********"
+	   
 
 	cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric')
 	
@@ -46,16 +38,20 @@ end
 
 
 *Small example using regression, glm, and mixed models
+set seed 1
 cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
 global custom_b = "regress mpg weight trunk"  
 global custom_c = "regress mpg weight length" 
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do") evalmetric("r2") superlearner("yes")
-superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates")
+*superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_b custom_a custom_c regress elasticregress ridgeregress lassoregress ") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
+superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_a custom_b  custom_c regress ridgeregress lassoregress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
+*superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_b custom_a custom_c regress ridgeregress lassoregress") superpredname("tommy") superestname("estimates") 
+*superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates")
 
+
+* Another example
 clear
 webuse lbw 
-
 
 global custom_z = "logistic low age lwt smoke ptl ht ui" 
 global custom_x = "logistic low age lwt smoke ptl"

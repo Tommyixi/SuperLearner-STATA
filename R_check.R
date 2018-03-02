@@ -45,6 +45,7 @@ custom_c<- function(Y, X, newX, family, ...) {
 
 
 # generate Library and run Super Learner
+cars$binom <- rbinom(nrow(cars), 1, .5)
 SL.library <- c("custom_a", "custom_b", "custom_c")
 SL.library2 <- c("SL.mean", "SL.mean")
 test <- SuperLearner(Y = cars$mpg, X = cars_without_mpg, SL.library = SL.library,
@@ -52,3 +53,8 @@ test <- SuperLearner(Y = cars$mpg, X = cars_without_mpg, SL.library = SL.library
 a <- CV.SuperLearner(Y = cars$mpg, X = cars_without_mpg, SL.library = SL.library,
                      verbose = FALSE, family = "gaussian")
 
+b <- SuperLearner(Y = cars$binom, X = cars_without_mpg, SL.library = SL.library,
+                  verbose = FALSE, family = "gaussian")
+
+b_2 <- SuperLearner(Y = cars$binom, X = cars_without_mpg, SL.library = SL.library,
+                  verbose = FALSE, family = "binomial")

@@ -82,6 +82,16 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	if "`stub'" == "" {
 		local stub = "est"
 	}
+	
+	local title Cross Validation
+	display _newline as text "`title'" _continue
+	local textpreface _col(40) as text 
+	local intpreface  _col(67) "= " as res %10.0fc 
+	local realpreface _col(67) "= " as res %10.4f 
+	display `textpreface' "Number of observations" `intpreface'  _N		
+	display `textpreface' "Evaluation Metric"      `realpreface' "`evalmetric'"
+	display `textpreface' "K"   					`intpreface' "`k'"
+	
 		
 * Randomize dataset and initialize results matrix.
 
@@ -213,8 +223,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			if "`superlearner'" != "" {
 				* We have predictions run off each model, we should loop through the number of folds
 				* and create predictions based on the data from those folds.
-				
-******************************************************
 			local average_error_sum_sl = 0
 			forvalues i=1/`k' {
 				local count = wordcount("`anything'")		
@@ -272,7 +280,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				}
 				`qui' nl (`exp') if `exp3'  , eps(1e-10) nolog	
 				*We can now build the code required to actually get the weights from the optimization
-				`qui' nlcom `exp2' //, post
+				`qui' nlcom `exp2', iterate(1000) //, post
 				
 				
 				*Small loop to round our coefficients
@@ -286,16 +294,15 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				}
 				
 				matrix colnames C = `colnamesnames'
-				*mat list C		
 				
 				local pred_name = "y_hat_`i'"
-				`qui' predict "`pred_name'"
+				`qui' predict "`pred_name'" if `group' == `i'
 				
 				* Now that we have the predictions within each fold, we can now find the evaluation metric for each fold...
 				
 				* Generate error term- MAE = Mean Absolute Error instead of MSE
 				if "`evalmetric'" == "mae" {
-					qui gen `e' = abs(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
+					qui gen `e' = abs(y_hat_`i'-`depvar') if `group' == `i' `eif' `ein'
 					local result ""
 					local label  "MAE"
 				}
@@ -311,9 +318,10 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 					}
 				* Generate the MSE (default)
 					else {
-						qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
+						qui gen `e' = (y_hat_`i'-`depvar')*(y_hat_`i'-`depvar') if `group' == `i' `eif' `ein'
 						local label  "MSE"
 					}
+					
 				
 				* Tabulate errors
 				
@@ -322,34 +330,57 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 						mat `A' 			  = r(StatTotal)
 						local mean 		   	  = `A'[1,1]					
 						mat `results'[`i',1]  = (`mean')
-						local average_error_sum_sl = `average_error_sum_sl' + `result'(`mean')						
+						local average_error_sum_sl = `average_error_sum_sl' + `result'(`mean')
 					}
 					else {
 						* Generate psuedo r-squared.
-						qui corr ``j''_`i' `depvar'
+						qui corr y_hat_`i' `depvar'
 						mat `results'[`i',1]  = r(rho)*r(rho)
 						local average_error_sum_sl = `average_error_sum_sl' + (r(rho)*r(rho))
-					}				
+					}			
+					cap drop `e'
 				
 			}
 			local average_error_sl = round(`average_error_sum_sl' / `k', .00001)
 			
 			
-			display "SuperLearner: `average_error_sl'"
+			display "SuperLearner: `average_error_sl' "
 			
 ******************************************************;				
 
 
-			}		
-
-		
-			display "********Discrete Super Learner Results********"
+			}
+			
 			if "`superlearner'" != "" {
 				if `average_error_sl' < `lowmse'{
-					display "Superlearner: average_error_sl"
+					local title Cross Validataed SuperLearner Results 
+					display _newline as text "`title'" _continue
+					local textpreface _col(40) as text 
+					local intpreface  _col(67) "= " as res %10.0fc 
+					local realpreface _col(67) "= " as res %10.4f 
+					display `textpreface' "Number of observations" `realpreface'  _N
+					display `textpreface' "Evaluation Metric"      `realpreface' "`evalmetric'"
+					display `textpreface' "K"   					`realpreface' "`k'"			
+					display "Superlearner: `average_error_sl'"
+					display _newline as text "" _continue
+					display _newline as text "" _continue
+					display _newline as text "" _continue
+					display _newline as text "" _continue
 				}
 				else{
-					display "`model' : `lowmse' " 						
+					local title Discrete SuperLearner Results 
+					display _newline as text "`title'" _continue
+					local textpreface _col(40) as text 
+					local intpreface  _col(67) "= " as res %10.0fc 
+					local realpreface _col(67) "= " as res %10.4f 
+					display `textpreface' "Number of observations" `intpreface'  _N
+					display `textpreface' "Evaluation Metric"      `realpreface' "`evalmetric'"
+					display `textpreface' "K"   					`realpreface' "`k'"
+					display "`model' : `lowmse' " 	
+					display _newline as text "" _continue
+					display _newline as text "" _continue
+					display _newline as text "" _continue
+					display _newline as text "" _continue
 				}
 			}
 		
