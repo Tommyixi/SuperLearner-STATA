@@ -225,6 +225,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				* and create predictions based on the data from those folds.
 			local average_error_sum_sl = 0
 			forvalues i=1/`k' {
+			display "we are at i: `i'"
 				local count = wordcount("`anything'")		
 				* First we need to build the denominator of our system of equations
 				local counter = 2
@@ -242,7 +243,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 					}
 					
 				}
-				
 				* At this point, we should have a denominator that is the same across all equations
 				* Now we can coninue on and build the equations
 				* First we reset the counter
@@ -265,7 +265,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				local exp = "`depvar' = "				
 				local exp2 = ""
 				local exp3 = ""
-				while `counter' <= `count'{					
+				while `counter' <= `count'{	
 					if `counter' == 1{
 						local exp = "`exp'" + "`ma`counter''*``counter''_`i' "
 						local exp2 = "`exp2'" + "(``counter'': `na`counter'')"
@@ -281,7 +281,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				`qui' nl (`exp') if `exp3'  , eps(1e-10) nolog	
 				*We can now build the code required to actually get the weights from the optimization
 				`qui' nlcom `exp2', iterate(1000) //, post
-				
 				
 				*Small loop to round our coefficients
 				mat b = r(b)
@@ -342,8 +341,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				
 			}
 			local average_error_sl = round(`average_error_sum_sl' / `k', .00001)
-			
-			
 			display "SuperLearner: `average_error_sl' "
 			
 ******************************************************;				
@@ -358,7 +355,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 					local textpreface _col(40) as text 
 					local intpreface  _col(67) "= " as res %10.0fc 
 					local realpreface _col(67) "= " as res %10.4f 
-					display `textpreface' "Number of observations" `realpreface'  _N
+					display `textpreface' "Number of observations" `intpreface'  _N
 					display `textpreface' "Evaluation Metric"      `realpreface' "`evalmetric'"
 					display `textpreface' "K"   					`realpreface' "`k'"			
 					display "Superlearner: `average_error_sl'"
