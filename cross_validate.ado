@@ -31,8 +31,8 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 		local evalmetric = "mse"
 	}
 	
-	if "`evalmetric'" != "mae" & "`evalmetric'" != "r2" & "`evalmetric'" != "mse" & "`evalmetric'" != "auc" &  "`evalmetric'" != "" {
-		di in red "Evaluation metric must either be mae, r2, auc, or the default, mse."
+	if "`evalmetric'" != "mae" & "`evalmetric'" != "r2" & "`evalmetric'" != "mse" & "`evalmetric'" != "auc" & "`evalmetric'" != "rmse" &  "`evalmetric'" != "" {
+		di in red "Evaluation metric must either be mae, rmse, r2, auc, or the default, mse."
 		exit 198
 	}
 
@@ -139,15 +139,14 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			* it's possible for the user to specify a custom method which we need to deal with. 
 			* Note, this has been addressed
 			local test_custom = usubstr("``j''",1 ,6)
-			if "`test_custom'" == "custom"{
-				`qui' $``j'' `weight' if `group' != `i' & `touse'  , `options'
+			if "`test_custom'" == "custom"{ 
+				`qui' $``j'' `weight' if `group' != `i' & `touse' , `options'
 			}
 			else{
 				* declare the dependent variable and make prediction
 				* note, we exclude the current group and use the rest of the sample. 
-				`qui' ``j'' `vars' `weight' if `group' != `i' & `touse'  , `options'
+				`qui' ``j'' `vars' `weight' if `group' != `i' & `touse' , `options'
 			}
-			
 			
 			local depvar = e(depvar)
 			*capture estimates and store them in stubi name.
@@ -156,7 +155,6 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 			* Make a prediction on the set not tested (we should have a column of yats).
 			`qui' predict ``j''_`i' if `group' == `i'
 			local new_var = "`new_var'" + " ``j''_`i'"
-						
 			
 			* Generate error term- MAE = Mean Absolute Error instead of MSE
 				if "`evalmetric'" == "mae" {
@@ -170,10 +168,16 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				}
 			* Should they select the AUC as an evaluation metric
 				else if "`evalmetric'" == "auc" {
-					`qui' lroc if `group' == `i' `eif' `ein', nograph	
+					lroc if `group' == `i' `eif' `ein', nograph	
 					qui gen `e' = r(area) 
 					local label "AUC"
 				}
+			* Should they select the rmse as an evaluation metric
+				else if "`evalmetric'" == "rmse" {
+					qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
+					local result "sqrt"
+					local label  "RMSE"
+				}				
 			* Generate the MSE (default)
 				else {
 					qui gen `e' = (``j''_`i'-`depvar')*(``j''_`i'-`depvar') if `group' == `i' `eif' `ein'
@@ -191,7 +195,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				}
 				else {
 					* Generate psuedo r-squared.
-					qui corr ``j''_`i' `depvar'
+					qui corr ``j''_`i' `depvar'  if `group' == `i'
 					mat `results'[`i',1]  = r(rho)*r(rho)
 					local average_error_sum = `average_error_sum' + (r(rho)*r(rho))
 				}
@@ -201,7 +205,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				cap drop `e'			
 
 			}
-			local average_error = round(`average_error_sum' / `k', .00001)
+			local average_error = `result'(round(`average_error_sum' / `k', .00001))
 			
 			display "``j'': `average_error' "
 			
@@ -315,6 +319,12 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 						qui gen `e' = r(area) 
 						local label "AUC"
 					}
+				* Should they select the rmse as an evaluation metric
+					else if "`evalmetric'" == "rmse" {
+						qui gen `e' = (y_hat_`i'-`depvar')*(y_hat_`i'-`depvar') if `group' == `i' `eif' `ein'
+						local result "sqrt"
+						local label  "RMSE"
+					}						
 				* Generate the MSE (default)
 					else {
 						qui gen `e' = (y_hat_`i'-`depvar')*(y_hat_`i'-`depvar') if `group' == `i' `eif' `ein'
@@ -338,9 +348,9 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 						local average_error_sum_sl = `average_error_sum_sl' + (r(rho)*r(rho))
 					}			
 					cap drop `e'
-				
 			}
-			local average_error_sl = round(`average_error_sum_sl' / `k', .00001)
+			
+			local average_error_sl = `result'(round(`average_error_sum_sl' / `k', .00001))
 			display "SuperLearner: `average_error_sl' "
 			
 ******************************************************;				

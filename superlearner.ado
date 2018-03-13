@@ -1,6 +1,3 @@
-clear
-sysuse auto.dta
-
 capture program drop superlearner
 program define superlearner, eclass
 	
@@ -19,9 +16,6 @@ program define superlearner, eclass
 		loud: 				Should the output from each command be displayed?
 		evalmetric:			How should the cross validation be executed (mae, pseudo rsquared, auc, rmse(default))
 		indvars: 			Independent variables required for weight optimization 
-		newdata:			The name of the new dataset you would like to make predictions on (used for OOS prediction)
-		libraryglobals:		The name of the file containing the custom global macros for prediction (used for OOS prediction)
-		originaldataset:	The name of the original dataset (used for OOS prediction)
 	*/
 	
 	* Parameter checks!
@@ -38,6 +32,9 @@ end
 
 
 *Small example using regression, glm, and mixed models
+clear
+sysuse auto.dta
+
 set seed 1
 cd "/Users/Tommy/Documents/Berkeley/Thesis research"
 global custom_a = "regress mpg weight trunk price"
