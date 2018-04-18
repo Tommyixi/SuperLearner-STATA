@@ -3,3 +3,7 @@ Paper/*
 Real\ Data/*
 Simulation/*
 Thesis\ Drafts/*
+.Rhistory
+.RData
+.DS_Store
+.ster
