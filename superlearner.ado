@@ -3,6 +3,8 @@ program define superlearner, eclass
 	
 	syntax varlist(min=2) , [if] [in] k(integer) family(string) library(string) [originaldataset(string)] [superpredname(string)] [superestname(string)] [newdata(string)] [libraryglobals(string)] [loud] [evalmetric(string)]
 	
+
+	
 	/*
 		varlist: 			Variables (both Y and X) that are used to fit models.
 		k: 					Number of folds desired for the kfold cross validation
@@ -18,8 +20,7 @@ program define superlearner, eclass
 		indvars: 			Independent variables required for weight optimization 
 	*/
 	
-	* Parameter checks!
-	   
+	* Parameter checks!	   
 
 	cross_validate `library', vars(`varlist') k(`k') evalmetric(`evalmetric')
 	
