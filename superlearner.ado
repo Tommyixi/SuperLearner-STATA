@@ -30,30 +30,3 @@ program define superlearner, eclass
 	
 	optimize_weights `depvar', predictors(`library') vars(`varlist') library(`library') k(`k') evalmetric(`evalmetric') superpredname(`superpredname') superestname(`superestname') indvars(`indvars') newdata(`newdata') libraryglobals(`libraryglobals') originaldataset(`originaldataset')
 end
-
-
-*Small example using regression, glm, and mixed models
-clear
-sysuse auto.dta
-
-set seed 1
-cd "/Users/Tommy/Documents/Berkeley/Thesis research"
-global custom_a = "regress mpg weight trunk price"
-global custom_b = "regress mpg weight trunk"  
-global custom_c = "regress mpg weight length" 
-*superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_b custom_a custom_c regress elasticregress ridgeregress lassoregress ") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
-superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_a custom_b  custom_c regress ridgeregress lassoregress") superpredname("tommy") superestname("estimates") newdata("cars_altered.dta") originaldataset("auto.dta") libraryglobals("library.do")
-*superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_b custom_a custom_c regress ridgeregress lassoregress") superpredname("tommy") superestname("estimates") 
-*superlearner mpg length price weight,  k(10) family("gaussian") library("custom_b custom_a custom_c regress") superpredname("tommy") superestname("estimates")
-
-
-* Another example
-clear
-webuse lbw 
-
-global custom_z = "logistic low age lwt smoke ptl ht ui" 
-global custom_x = "logistic low age lwt smoke ptl"
-global custom_w = "probit low age "  
-superlearner low age lwt smoke ptl ht ui, k(10) family("gaussian") library("custom_w custom_z custom_x probit") evalmetric("auc")
-
-

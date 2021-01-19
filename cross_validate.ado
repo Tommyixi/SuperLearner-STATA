@@ -28,11 +28,11 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 	* Options and syntax checks.
 	
 	if "`evalmetric'" == "" {
-		local evalmetric = "mse"
+		local evalmetric = "rmse"
 	}
 	
 	if "`evalmetric'" != "mae" & "`evalmetric'" != "r2" & "`evalmetric'" != "mse" & "`evalmetric'" != "auc" & "`evalmetric'" != "rmse" &  "`evalmetric'" != "" {
-		di in red "Evaluation metric must either be mae, rmse, r2, auc, or the default, mse."
+		di in red "Evaluation metric must either be mae, mse, r2, auc, or the default, rmse."
 		exit 198
 	}
 
@@ -229,7 +229,7 @@ syntax anything [iweight/] [if/] [in], [vars(string)] [k(numlist min=1 max=1)] [
 				* and create predictions based on the data from those folds.
 			local average_error_sum_sl = 0
 			forvalues i=1/`k' {
-			display "we are at i: `i'"
+			display "Performing Cross Validation on Fold: `i'"
 				local count = wordcount("`anything'")		
 				* First we need to build the denominator of our system of equations
 				local counter = 2
