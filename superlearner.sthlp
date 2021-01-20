@@ -6,14 +6,13 @@
 {title:Title}
 
 {p2colset 5 12 16 2}{...}
-{p2col :{hi:superlearner} {hline 2}}Superlearner{p_end}
+{p2col :{hi:superlearner{hline 2}}Super Learner} {p_end}
 {p2colreset}{...}
-
 
 {title:Syntax}
 {p 8 16 2}{cmd:superlearner} {it:varlist} {ifin} [,{it:options}]
 
-{p 4 4 2}{it:varlist} refers to the list of variables (both dependent and independent) that are used to fit the model;
+{p 4 4 2}{it:varlist} refers to the list of variables (both dependent and independent) that are used to fit the model.
 
 {synoptset 20 tabbed}{...}
 {synopthdr:options}
@@ -44,9 +43,8 @@
 {title:Description}
 
 {pstd}
-{cmd:superlearner} executes the reduced rank regression, a multivariate linear regression with the function of dimension reduction. 
-This command is based on the PCA of the OLS predicted vaules for dependent variables. 
-It generates the retained factor scores (i.e., linear combinations of independent variables) from reduced rank regression and saves them as new variables in the dataset.
+{cmd:superlearner} Fits the super learner algorithm on a set of data to obtain predictions on either the current or a new dataset. The way this model works is the data you would like to run the super learner model on must exist in a callable dataset. 
+It generates predictions using the super learner algorithm
 
 
 {title:Options}

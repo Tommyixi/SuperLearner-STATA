@@ -3,15 +3,12 @@
 
 *Small example using regression, glm, and mixed models
 clear
-sysuse auto.dta
+
+use "training_data.dta"
+
 
 do "superlearner.ado"
 
-global custom_a = "regress mpg weight trunk price"
-global custom_b = "regress mpg weight trunk"  
-global custom_c = "regress mpg weight length" 
-
-
 set seed 1
 
-sl mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_a custom_b  custom_c regress ridgeregress lassoregress") superpredname("predictions") superestname("estimates") originaldataset("auto.dta")
+superlearner mpg length price weight length turn displacement,  k(10) family("gaussian") library("custom_learners.do") superpredname("predictions") superestname("estimates") originaldataset("training_data.dta") newdata("testing_data.dta")
