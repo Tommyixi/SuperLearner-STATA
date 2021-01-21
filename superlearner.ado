@@ -632,8 +632,7 @@ program define optimize_weights, rclass
 			`qui' sysuse `originaldataset'
 			
 		
-			
-			*clear the dataset, run predict on the new dataset, save the new dataset, close it, open the original dataset and repeat.
+			* Clear the dataset, run predict on the new dataset, save the new dataset, close it, open the original dataset and repeat.
 			tokenize `predictors'
 			local counter = 1
 			local j = 1
@@ -667,6 +666,7 @@ program define optimize_weights, rclass
 				`qui' sysuse `newdata'
 				
 				estimates use `estimatemodel'
+				`qui' drop ``j''
 				`qui' predict ``j''
 				`qui' save `newdata', replace
 				
@@ -683,19 +683,3 @@ program define optimize_weights, rclass
 		
 	}
 end
-
-
-/* Example using three equations
-gen mpgmean = r(mean)
-
-local ma3 (exp({t3})/(1+exp({t2})+exp({t3})))
-local ma2 (exp({t2})/(1+exp({t2})+exp({t3})))
-local ma1 (1/(1+exp({t2})+exp({t3})))
-nl (mpg = `ma1'*custom_a + `ma2'*custom_b + `ma3'*custom_c + {a4}), delta(1e-7) nolog
-
-
-local na2 exp(_b[t2:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
-local na3 exp(_b[t3:_cons])/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
-local na1 1/(1+exp(_b[t2:_cons])+exp(_b[t3:_cons]))
-nlcom (custom_a: `na1') (custom_b: `na2') (custom_c: `na3')
-*/
