@@ -624,62 +624,65 @@ program define optimize_weights, rclass
 		cross_validate `library', vars(`vars') k(`k') evalmetric(`evalmetric') superlearner("`superestname'") depvar(`varlist')
 		
 		
-		* If the user wants to make an out of sample prediction, do the following:
-		if "`newdata'" != "" {
+		* Clear out the original dataset and reload.
+		clear 
+		`qui' sysuse `originaldataset'
 		
-			* Clear out the original dataset and reload.
-			clear 
+	
+		* Clear the dataset, run predict on the new dataset, save the new dataset, close it, open the original dataset and repeat.
+		tokenize `predictors'
+		local counter = 1
+		local j = 1
+		
+		
+		* Reload all the associated models, if there are any...
+		if "`libraryglobals'" != "" {
+			`qui' do `libraryglobals'
+		}			
+		
+		
+		while "`1'" != "" {
+			* For each model in the library, we have to load the original dataset
 			`qui' sysuse `originaldataset'
 			
-		
-			* Clear the dataset, run predict on the new dataset, save the new dataset, close it, open the original dataset and repeat.
-			tokenize `predictors'
-			local counter = 1
-			local j = 1
-			
-			
-			* Reload all the associated models, if there are any...
-			if "`libraryglobals'" != "" {
+			* Run the model (check if it's a custom method)
+			local test_custom = usubstr("``j''",1 ,6)
+			if "`test_custom'" == "custom"{
 				`qui' do `libraryglobals'
-			}			
-			
-			
-			while "`1'" != "" {
-				* For each model in the library, we have to load the original dataset
-				`qui' sysuse `originaldataset'
-				
-				* Run the model (check if it's a custom method)
-				local test_custom = usubstr("``j''",1 ,6)
-				if "`test_custom'" == "custom"{
-					`qui' do `libraryglobals'
-					`qui' $``j'' 
-				}
-				else{
-					`qui' ``j'' `varlist' `indvars' 
-				}
-				* Save estimates
-				local estimatemodel = "estimates" + "`counter'"
-				`qui' estimates save "`estimatemodel'", replace
-				
-				* Clear the dataset, load the original, run prediction, save dataset
-				clear 
-				`qui' sysuse `newdata'
-				
-				estimates use `estimatemodel'
-				`qui' drop ``j''
-				`qui' predict ``j''
-				`qui' save `newdata', replace
-				
-				local counter = `counter' + 1
-				macro shift
+				`qui' $``j'' 
 			}
-			`qui' estimates use `superestname' 
-			`qui' predict superlearner_prediction
+			else{
+				`qui' ``j'' `varlist' `indvars' 
+			}
+			* Save estimates
+			local estimatemodel = "estimates" + "`counter'"
+			`qui' estimates save "`estimatemodel'", replace
 			
+			* Clear the dataset, load the original, run prediction, save dataset
+			clear 
+			
+			* If the user wants to make an out of sample prediction, do the following:
+			if "`newdata'" != "" {				
+				`qui' sysuse `newdata'
+				estimates use `estimatemodel'
+				`qui' predict ``j''
+				`qui' save `newdata', replace					
+			}
+			else{
+				`qui' sysuse `originaldataset'
+				estimates use `estimatemodel'
+				`qui' predict ``j''
+				`qui' save `originaldataset', replace					
+			}
+			
+			
+			local counter = `counter' + 1
+			macro shift
 		}
-		
-		
-		
+		`qui' estimates use `superestname' 
+		`qui' predict superlearner_prediction
+			
+
 		
 	}
 end
