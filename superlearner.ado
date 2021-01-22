@@ -681,8 +681,6 @@ program define optimize_weights, rclass
 		}
 		`qui' estimates use `superestname' 
 		`qui' predict superlearner_prediction
-			
-
-		
+					
 	}
 end
